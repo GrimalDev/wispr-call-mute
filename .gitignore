@@ -1,0 +1,13 @@
+.runtime/
+__pycache__/
+*.py[cod]
+.DS_Store
+.venv/
+.env
+.env.*
+
+# Local setup history; not part of the distributable.
+README.txt
+flow-shortcuts-before.json
+karabiner-rule.json
+skhd.conf
