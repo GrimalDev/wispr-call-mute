@@ -1,4 +1,8 @@
 ObjC.import('Foundation');
+function isMeetingUrl(url) {
+  // Meet uses both /abc-defg-hij and /meet/abc-defg-hij for room URLs.
+  return /^https:\/\/meet\.google\.com\/(?:(?:meet\/)?[a-z]{3}-[a-z]{4}-[a-z]{3}|lookup\/[^/?#]+|new)(?:[/?#]|$)/i.test(url);
+}
 function run(args) {
   const action = args[0] || 'inspect';
   if (!['inspect', 'mute', 'restore'].includes(action)) throw Error('Invalid action');
@@ -12,7 +16,7 @@ function run(args) {
     for (const tab of window.tabs()) {
       const url = tab.url();
       // Skip the Meet homepage; include meeting rooms and lookup links.
-      if (!/^https:\/\/meet\.google\.com\/(?:[a-z]{3}-[a-z]{4}-[a-z]{3}|lookup\/[^/?#]+|new)(?:[/?#]|$)/i.test(url)) continue;
+      if (!isMeetingUrl(url)) continue;
       const execute = mode => tab.execute({javascript: source + '\nmeetMicrophone(' + JSON.stringify(mode) + ',' + JSON.stringify(token) + ')'});
       let state = execute(action);
       if (state === 'pending') {

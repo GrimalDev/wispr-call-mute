@@ -50,3 +50,38 @@ context.location.href = 'https://meet.google.com/ddd-eeee-fff';
 assert.equal(run('restore', 'three'), 'untouched');
 assert.equal(muted, true);
 console.log('Meet mute and restoration checks passed');
+
+// Exercise the actual Vivaldi tab enumeration, including Meet's /meet/ prefix.
+const executed = [];
+const roomUrls = [
+  'https://meet.google.com/aaa-bbbb-ccc',
+  'https://meet.google.com/meet/aaa-bbbb-ccc',
+  'https://meet.google.com/meet/aaa-bbbb-ccc?authuser=1',
+  'https://meet.google.com/lookup/example',
+  'https://meet.google.com/new',
+];
+const skippedUrls = [
+  'https://meet.google.com/',
+  'https://meet.google.com/landing',
+  'https://meet.google.com/meet/',
+  'https://meet.google.com/meet/aaa-bbbb-ccc-extra',
+  'https://meet.google.com.evil.test/meet/aaa-bbbb-ccc',
+  'https://example.com/meet/aaa-bbbb-ccc',
+];
+const adapterContext = vm.createContext({
+  ObjC: {import: () => {}, unwrap: value => value},
+  $: {NSString: {stringWithContentsOfFileEncodingError: () => source}},
+  Application: () => ({
+    running: () => true,
+    windows: () => [{tabs: () => [...roomUrls, ...skippedUrls].map(url => ({
+      url: () => url,
+      execute: () => {executed.push(url); return 'muted';},
+    }))}],
+  }),
+});
+vm.runInContext(fs.readFileSync(__dirname + '/vivaldi.js', 'utf8'), adapterContext);
+const result = JSON.parse(vm.runInContext("run(['inspect', 'meet.js'])", adapterContext));
+assert.deepEqual(executed, roomUrls);
+assert.equal(result.meetings.length, roomUrls.length);
+assert.ok(result.meetings.every(meeting => meeting.state === 'muted'));
+console.log('Vivaldi Meet URL routing checks passed');
